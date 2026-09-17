@@ -1061,13 +1061,14 @@
     let text = raw.trim();
     if (!text) return null;
     if (text.startsWith("/")) return new URL(text, location.origin);
-    if (/^[a-z][a-z0-9+.-]*:/i.test(text)) {
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) {
       try { return new URL(text); } catch { return null; }
     }
     const firstSegment = text.split(/[/?#]/)[0];
+    const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(firstSegment);
     const looksLikeHost = /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$/i.test(firstSegment) && !/\.html?$/i.test(firstSegment);
-    if (looksLikeHost || /^localhost(:\d+)?$/i.test(firstSegment)) {
-      try { return new URL(`https://${text}`); } catch { return null; }
+    if (isLocal || looksLikeHost) {
+      try { return new URL(`${isLocal ? "http" : "https"}://${text}`); } catch { return null; }
     }
     try { return new URL(text, document.baseURI); } catch { return null; }
   }
