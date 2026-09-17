@@ -1030,6 +1030,15 @@
   const stage = $("stage");
   const status = $("status");
   let currentURL = null;
+  const localFile = (url) => ["/index.html", "/demo.html"].includes(url.pathname) || url.pathname.startsWith("/docs/");
+
+  // serve.js answers this probe. When it does, cross-origin URLs are routed
+  // through its reverse proxy so they become same-origin and can be injected.
+  let proxy = null;
+  const proxyReady = (location.origin === "null" ? Promise.reject() : fetch("/__duo/health", { cache: "no-store" }))
+    .then((response) => (response.ok ? response.json() : null))
+    .then((info) => { proxy = info && info.ok ? info : null; })
+    .catch(() => { proxy = null; });
 
   for (const [key, preset] of Object.entries(presets)) {
     const option = document.createElement("option");
@@ -1092,9 +1101,9 @@
     try { doc = iframe.contentDocument; } catch {}
     if (!doc || !doc.documentElement) {
       setStatus(true,
-        `${currentURL.origin} is cross-origin, so safe areas cannot be injected from here. Serve this page ` +
-        `from that origin, or open DevTools, select the preview frame context and paste the inject snippet. ` +
-        `A blank screen means the site refuses to be framed.`);
+        `${currentURL.origin} is cross-origin, so safe areas cannot be injected from here. Run node serve.js ` +
+        `from the previewer folder to proxy any site, serve this page from that origin, or open DevTools, ` +
+        `select the preview frame context and paste the inject snippet. A blank screen means the site refuses to be framed.`);
       $("copy").hidden = false;
       return;
     }
@@ -1107,7 +1116,8 @@
       else style.removeProperty(name);
     }
     const { width, height } = preset().screen;
-    setStatus(false, `${width}×${height} · same-origin · insets ` +
+    const via = proxy && proxy.target && !localFile(currentURL) ? ` via proxy for ${new URL(proxy.target).host}` : "";
+    setStatus(false, `${width}×${height} · same-origin${via} · insets ` +
       ($("insets").checked ? `T${values.top} R${values.right} B${values.bottom} L${values.left}` : "off"));
   }
 
@@ -1153,9 +1163,9 @@
     history.replaceState(null, "", `${location.pathname}?${next}`);
   }
 
-  function load() {
-    const url = resolveURL($("url").value);
-    if (!url) {
+  async function load() {
+    const typed = resolveURL($("url").value);
+    if (!typed) {
       currentURL = null;
       iframe.removeAttribute("src");
       $("placeholder").hidden = false;
@@ -1164,11 +1174,26 @@
       $("url").focus();
       return;
     }
+    await proxyReady;
+    let url = typed;
+    if (proxy && !isSameOrigin(typed)) {
+      setStatus(false, `Routing ${typed.host} through the local proxy…`);
+      try {
+        const response = await fetch(`/__duo/target?url=${encodeURIComponent(typed.href)}`, { cache: "no-store" });
+        const info = await response.json();
+        if (!response.ok) throw new Error(info.error || response.statusText);
+        proxy.target = info.target;
+        url = new URL(info.path, location.origin);
+      } catch (error) {
+        setStatus(true, `The local proxy could not take ${typed.host}: ${error.message}`);
+        return;
+      }
+    }
     currentURL = url;
     $("placeholder").hidden = true;
     iframe.src = url.href;
-    setStatus(false, `Loading ${url.host}…`);
-    if (!isSameOrigin(url)) $("copy").hidden = false;
+    setStatus(false, `Loading ${typed.host}…`);
+    $("copy").hidden = isSameOrigin(url);
     syncURL();
   }
 

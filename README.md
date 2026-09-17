@@ -10,11 +10,11 @@ Preview any website inside an iPhone Duo frame, with the display's safe areas ap
 
 - Draws the iPhone Duo outer and inner displays, in portrait and landscape, around a viewport of the display's size.
 - Lets you type any URL and renders it inside the screen cut-out.
-- Injects each display's safe areas into the previewed page when it is same-origin.
+- Injects each display's safe areas into the previewed page. Cross-origin sites are routed through a small local proxy so injection works for any site, local or on the internet.
 - Shows translucent guides over the inset regions, which you can hide for clean mockups.
 - Keeps every setting in the query string so a view can be bookmarked or shared.
 
-Everything lives in a single `index.html`. No build step, no dependencies. `demo.html` is a small page that visualizes the injected safe areas so you can see the mechanism working.
+The previewer is a single `index.html`. `serve.js` is an optional local server with a reverse proxy that makes any site same-origin. No build step, no dependencies. `demo.html` is a small page that visualizes the injected safe areas so you can see the mechanism working.
 
 ## Quick start
 
@@ -23,12 +23,14 @@ The hosted copy on GitHub Pages is enough to try the frames and the demo page. B
 ```bash
 git clone https://github.com/bgoncal/iPhone-Duo-Web-Previewer.git
 cd iPhone-Duo-Web-Previewer
-python3 -m http.server 8765
+node serve.js
 ```
 
-Open <http://127.0.0.1:8765/index.html?url=demo.html>. Pick a frame, toggle **Inject safe areas**, and watch the demo page re-pad itself.
+Open <http://127.0.0.1:8765/index.html?url=demo.html>. Pick a frame, toggle **Inject safe areas**, and watch the demo page re-pad itself. Then type any address, such as `https://example.com` or `http://localhost:3000`, and it is previewed with safe areas too.
 
-Any static server works. Opening `index.html` straight from disk also works, but then no page can be same-origin, so safe areas will not be injected.
+`serve.js` needs Node 18 or newer and nothing else. Pass a port as the first argument to change it, and `--verbose` to log every proxied request.
+
+Any static server, such as `python3 -m http.server 8765`, also serves the previewer, but without the proxy only same-origin pages can be injected. Opening `index.html` straight from disk works as well, but then no page can be same-origin.
 
 ## Frames
 
@@ -75,7 +77,9 @@ A site that reads these first and falls back to the real values lays out exactly
 
 ## Previewing your own site
 
-Browsers only let a page reach into an iframe of the **same origin**, so injection is automatic only when the previewer is served by the site you are previewing. The simplest way is to copy `index.html` into the site's static folder so it comes from the same origin:
+Browsers only let a page reach into an iframe of the **same origin**, and many sites send `X-Frame-Options` or `frame-ancestors` headers that refuse framing altogether. `serve.js` solves both: when the typed URL is on another origin, the previewer asks the server to reverse-proxy that site under `127.0.0.1:8765`, and the status line reads `same-origin via proxy for <host>`. In-app navigation, redirects, cookies and WebSockets all go through the proxy, and framing headers are removed on the way.
+
+If you would rather not run Node, or want the previewer deployed next to the site, copy `index.html` into the site's static folder so it comes from the same origin:
 
 | Setup | Where to put `index.html` | Then open |
 |---|---|---|
@@ -87,15 +91,21 @@ Rename the file if `index.html` collides with your site's own entry point. Type 
 
 ## Cross-domain websites
 
-When the site you want to preview lives on a different origin than the previewer, the status line turns yellow and explains it. You have three options.
+When the site you want to preview lives on a different origin than the previewer, and `serve.js` is not running, the status line turns yellow and explains it. You have four options.
 
-### 1. Serve the previewer from the site's origin
+### 1. Run `node serve.js`
 
-Copy `index.html` next to the site as described above. This is the only option that injects automatically, survives reloads and in-app navigation, and needs no extra tooling.
+The built-in proxy handles one site at a time and switches automatically when you type a new cross-origin URL. It sets the `Host` header to the target, rewrites `Location` headers and cookies to the local origin, replaces absolute self-references in HTML, CSS and JavaScript, and strips `X-Frame-Options`, `Content-Security-Policy` and `Strict-Transport-Security`. Do this only for sites you own or are allowed to test.
 
-### 2. Put both behind one local origin with a reverse proxy
+Known limits: a login that bounces through a third-party identity provider usually rejects a `localhost` redirect and leaves the proxy. Sites that bind sessions to their hostname may log you out. A site's own `/index.html` or `/demo.html` is shadowed by the previewer's files.
 
-Useful for a deployed site you cannot add files to. Run a proxy that serves the previewer under one path and forwards everything else to the site. With [Caddy](https://caddyserver.com):
+### 2. Serve the previewer from the site's origin
+
+Copy `index.html` next to the site as described above. This needs no extra tooling and also works for a deployed previewer.
+
+### 3. Put both behind one local origin with a reverse proxy
+
+Useful when you already run a proxy, or want to preview from a real domain. With [Caddy](https://caddyserver.com):
 
 ```caddyfile
 :8080 {
@@ -125,11 +135,11 @@ If the site refuses to be framed, the proxy can also drop those headers for loca
 
 Sites that hard-code absolute URLs to their own domain, or that rely on cookies scoped to it, may not fully work through a proxy.
 
-### 3. Inject by hand from DevTools
+### 4. Inject by hand from DevTools
 
 Load the cross-origin URL in the previewer, press **Copy inject snippet**, open DevTools, switch the console context to the preview frame, and paste. The snippet sets the four variables once. Repeat it after a full page reload inside the frame.
 
-A blank screen in any of these cases means the site sends `X-Frame-Options` or a `frame-ancestors` policy that refuses framing. Only option 2 can work around that.
+A blank screen in any of these cases means the site sends `X-Frame-Options` or a `frame-ancestors` policy that refuses framing. Only options 1 and 3 can work around that.
 
 ## Setting it up with an AI coding agent
 
@@ -141,8 +151,9 @@ Set up the iPhone Duo Web Previewer for me:
 2. If my project has a dev server with a static/public folder, copy index.html from the clone
    into it as duo-preview.html so it is served from my project's origin, then tell me the URL
    to open, for example http://localhost:<port>/duo-preview.html?url=/
-3. Otherwise start a static server in the clone on a free port (python3 -m http.server <port>)
-   and tell me to open http://127.0.0.1:<port>/index.html?url=demo.html
+3. Otherwise start the bundled server in the clone on a free port (node serve.js <port>, or
+   python3 -m http.server <port> if Node is missing) and tell me to open
+   http://127.0.0.1:<port>/index.html?url=demo.html
 4. Do not modify my project's source. Do not commit the copied file unless I ask.
 5. Report the URL, which frame presets exist, and remind me that safe areas are only injected
    when the previewed page is same-origin.
@@ -153,7 +164,8 @@ Notes for agents:
 - `index.html` is self-contained (about 3.4 MB because four device bitmaps are inlined). Copy it as is.
 - Do not edit the site being previewed. The previewer only sets `--app-safe-area-inset-*` on the framed page.
 - The frame and insets can be pre-selected through query parameters, see below, so you can hand the user a direct link.
-- If the user's site is on another origin and they cannot add a file to it, use the reverse proxy option above.
+- `serve.js` proxies any cross-origin site typed into the previewer, one at a time, so with it running there is nothing else to set up.
+- If the user cannot run Node and cannot add a file to the site, use the Caddy option above.
 
 ## Query parameters
 
@@ -172,5 +184,5 @@ Presets are a small table at the top of the script in `index.html`: a label, the
 
 ## Notes
 
-- The previewer does not change the site being previewed. It only sets the four variables above.
+- The previewer does not change the site being previewed. It only sets the four variables above. `serve.js` rewrites responses in transit, on your machine only, and never touches the site itself.
 - Rendering uses whatever browser you open the page in. Use Safari for the closest match to WebKit on iOS.
