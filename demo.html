@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Safe area demo</title>
+<style>
+  :root {
+    --safe-top: var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-right: var(--app-safe-area-inset-right, env(safe-area-inset-right, 0px));
+    --safe-bottom: var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-left: var(--app-safe-area-inset-left, env(safe-area-inset-left, 0px));
+  }
+  html, body { margin: 0; height: 100%; }
+  body {
+    box-sizing: border-box; min-height: 100vh;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+    background: repeating-linear-gradient(45deg, #f2f2f7 0 12px, #e5e5ea 12px 24px);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif; color: #1c1c1e;
+  }
+  main { background: #fff; min-height: 100%; box-sizing: border-box; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  h1 { font-size: 20px; margin: 0; }
+  .pill { background: #0a84ff; color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-variant-numeric: tabular-nums; }
+  dt { color: #8e8e93; }
+  .card { border: 1px solid #d1d1d6; border-radius: 12px; padding: 16px; }
+  footer { margin-top: auto; display: flex; gap: 8px; }
+  footer button { flex: 1; padding: 12px; border-radius: 10px; border: 0; background: #e5e5ea; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Safe area demo</h1>
+    <span class="pill">viewport-fit=cover</span>
+  </header>
+  <div class="card">
+    <p>The striped area is the unsafe region. This white panel is padded by the safe areas, read from <code>--app-safe-area-inset-*</code> with <code>env(safe-area-inset-*)</code> as the fallback.</p>
+    <dl>
+      <dt>top</dt><dd id="top"></dd>
+      <dt>right</dt><dd id="right"></dd>
+      <dt>bottom</dt><dd id="bottom"></dd>
+      <dt>left</dt><dd id="left"></dd>
+      <dt>viewport</dt><dd id="viewport"></dd>
+    </dl>
+  </div>
+  <footer>
+    <button>Cancel</button>
+    <button style="background:#0a84ff;color:#fff">Continue</button>
+  </footer>
+</main>
+<script>
+  function update() {
+    const style = getComputedStyle(document.body);
+    for (const side of ["top", "right", "bottom", "left"]) {
+      document.getElementById(side).textContent = style.getPropertyValue(`padding-${side}`);
+    }
+    document.getElementById("viewport").textContent = `${innerWidth} × ${innerHeight}`;
+  }
+  update();
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+  addEventListener("resize", update);
+</script>
+</body>
+</html>
