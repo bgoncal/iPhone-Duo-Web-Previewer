@@ -2,7 +2,7 @@
 
 Preview any website inside an iPhone Duo frame, with the display's safe areas applied, before a simulator exists.
 
-![A web app previewed in the iPhone Duo outer display](docs/example.png)
+![The demo page previewed in the iPhone Duo outer display](docs/duoOuterPortrait.png)
 
 ## What it does
 
