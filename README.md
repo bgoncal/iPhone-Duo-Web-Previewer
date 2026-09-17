@@ -2,7 +2,7 @@
 
 Preview any website inside an iPhone Duo frame, with the display's safe areas applied, before a simulator exists.
 
-**Try it:** <https://bgoncal.github.io/iPhone-Duo-Web-Previewer/?url=/demo.html>
+**Try it:** <https://bgoncal.github.io/iPhone-Duo-Web-Previewer/?url=demo.html>
 
 ![The demo page previewed in the iPhone Duo outer display](docs/duoOuterPortrait.png)
 
@@ -26,7 +26,7 @@ cd iPhone-Duo-Web-Previewer
 python3 -m http.server 8765
 ```
 
-Open <http://127.0.0.1:8765/index.html?url=/demo.html>. Pick a frame, toggle **Inject safe areas**, and watch the demo page re-pad itself.
+Open <http://127.0.0.1:8765/index.html?url=demo.html>. Pick a frame, toggle **Inject safe areas**, and watch the demo page re-pad itself.
 
 Any static server works. Opening `index.html` straight from disk also works, but then no page can be same-origin, so safe areas will not be injected.
 
@@ -142,7 +142,7 @@ Set up the iPhone Duo Web Previewer for me:
    into it as duo-preview.html so it is served from my project's origin, then tell me the URL
    to open, for example http://localhost:<port>/duo-preview.html?url=/
 3. Otherwise start a static server in the clone on a free port (python3 -m http.server <port>)
-   and tell me to open http://127.0.0.1:<port>/index.html?url=/demo.html
+   and tell me to open http://127.0.0.1:<port>/index.html?url=demo.html
 4. Do not modify my project's source. Do not commit the copied file unless I ask.
 5. Report the URL, which frame presets exist, and remind me that safe areas are only injected
    when the previewed page is same-origin.
@@ -159,7 +159,7 @@ Notes for agents:
 
 | Parameter | Meaning |
 |---|---|
-| `url` | Address to preview. A path such as `/settings` resolves against the previewer's origin |
+| `url` | Address to preview. `demo.html` or `sub/page.html` resolve next to the previewer, `/settings` resolves against its origin, `example.com` gets `https://` |
 | `preset` | `duoOuterPortrait`, `duoOuterLandscape`, `duoInnerPortrait` or `duoInnerLandscape` |
 | `insets` | `1` to inject safe areas, `0` to skip |
 | `top`, `right`, `bottom`, `left` | Inset values in px, overriding the preset |
