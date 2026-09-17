@@ -2,6 +2,8 @@
 
 Preview any website inside an iPhone Duo frame, with the display's safe areas applied, before a simulator exists.
 
+**Try it:** <https://bgoncal.github.io/iPhone-Duo-Web-Previewer/?url=/demo.html>
+
 ![The demo page previewed in the iPhone Duo outer display](docs/duoOuterPortrait.png)
 
 ## What it does
@@ -15,6 +17,8 @@ Preview any website inside an iPhone Duo frame, with the display's safe areas ap
 Everything lives in a single `index.html`. No build step, no dependencies. `demo.html` is a small page that visualizes the injected safe areas so you can see the mechanism working.
 
 ## Quick start
+
+The hosted copy on GitHub Pages is enough to try the frames and the demo page. Because it lives on `bgoncal.github.io`, only `demo.html` is same-origin there. To preview your own site with safe areas injected, run it locally or from your site's origin as described below.
 
 ```bash
 git clone https://github.com/bgoncal/iPhone-Duo-Web-Previewer.git
